@@ -1,4 +1,4 @@
-sciReptor - single-cell immunoglobulin repertoire analysis toolkit
+sciReptor - single-cell immunoglobulin repertoire analysis toolkit (DEVELOPMENT PHASE--- UNDER CONSTRUCTION)
 ------------------------------------------------------------------
 
 ###Installation
