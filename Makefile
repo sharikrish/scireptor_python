@@ -96,7 +96,7 @@ sblout_files = $(patsubst %.sfasta,%.sblout,$(sfasta_files))
 
 define do_454_data
 	python3 fastaqual_to_fasta.py -f $< -q $<.qual -p $(raw_data)
-	./todb_reads.py -fq $<.fastq -ri $<.info -m $(experiment_id)
+	./todb_reads.py -fq $<.fastq -ri $<.fastq.info -m $(experiment_id)
 	touch $@
 endef
 
@@ -151,7 +151,7 @@ $(dir)/metainfotodb.done: $(dir)/mutations.done
 
 # when igblast alignments uploaded, calculate mutations on all output files
 $(dir)/mutations.done: $(dir)/igblastalignments.done mutation_matrix.txt
-	./todb_mutations_from_align.pl -dir $(dir)
+	./todb_mutations_from_align.py -dir $(dir)
 	touch $@
 
 # create the mutation matrix
@@ -181,7 +181,7 @@ $(dir)/allsigout.done: $(sigout_files) $(sfasta_files)
 # upload sequence constant segments
 $(dir)/allsblout.done: $(sblout_files) $(sfasta_files)
 	cat $(sblout_files) > $@.x
-	./todb_constant.pl -bo $@.x -t constant_segments
+	./todb_constant.py -bo $@.x -t constant_segments
 	touch $@
 
 # how to generate sequence blout from sfasta
@@ -196,7 +196,7 @@ $(dir)/allsblout.done: $(sblout_files) $(sfasta_files)
 
 # how to get an sfasta file
 %.sfasta: $(dir)/allaligntodb.done
-	./fromdb_fasta.pl -s sequences -t VDJ_segments -f $@.x
+	./fromdb_fasta.py -s sequences -t VDJ_segments -f $@.x
 	mv $@.x $@
 
 
@@ -268,12 +268,12 @@ $(dir)/allrigout.done: $(dir)/alltodb.done $(rigout_files)
 $(dir)/allrblout.done: $(dir)/alltodb.done $(rblout_files)
 	cat $? > $@.x
 	mv $@.x $@
-	./todb_constant.pl -bo $@ -t reads_constant_segments
+	./todb_constant.py -bo $@ -t reads_constant_segments
 
 $(dir)/allrazers.done: $(dir)/alltodb.done $(razers_files)
 	cat $? > $@.x
 	mv $@.x $@
-	./todb_tags.pl -ro $@
+	./todb_tags.py -ro $@
 
 %.rrzout: %.rfasta
 	file_temp_fasta="$(patsubst %.rfasta,%.fasta,$<)"; \
@@ -294,7 +294,7 @@ $(dir)/allrazers.done: $(dir)/alltodb.done $(razers_files)
 
 # Use order-only prerequiste to avoid failing rebuild if change dates are to close
 %.rfasta: | $(dir)/alltodb.done
-	./fromdb_fasta.pl -s reads -t reads_VDJ_segments -f $@.x
+	./fromdb_fasta.py -s reads -t reads_VDJ_segments -f $@.x
 	mv $@.x $@
 
 $(dir)/alltodb.done: $(todb_reads_files)
