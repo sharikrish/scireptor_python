@@ -128,6 +128,6 @@ except binit.MySQLdb._exceptions.OperationalError:
 
 
 
-seq_id=cursor.lastrowid
+seq_id=int(cursor.lastrowid)
 
 cursor.execute(update_consensus_st % (seq_id, cons_id))

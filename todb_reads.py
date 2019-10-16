@@ -111,7 +111,7 @@ sequencing_run_id = db.insert_id()
 
 if seq_run_bool == True:
     sequencing_run_id = db.insert_id()
-    sequencing_run_id = (cursor.lastrowid) # check this behaviour later
+    sequencing_run_id = int(cursor.lastrowid) # check this behaviour later
     print ("[todb_reads.py][INFO] Inserted run {} {} from {} as id {} into table \"sequencing_run\".\n".format(
         infile_dic['runname'], infile_dic['optional'], infile_dic['rundate'], "sequencing_run_id"
     ))

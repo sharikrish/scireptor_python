@@ -215,7 +215,7 @@ $(dir)/allaligntodb.done: $(dir)/consensusfasta.done $(caln_files)
 %.caln: %.cfasta
 	./perform_muscle.py -f $< -aln $@.x
 	mv $@.x $@
-	./todb_consensus_sequences.py -aln $@
+	./todb_consensus_sequences.pl -aln $@
 
 # get all the consensus fasta from the database
 # only here cfasta and caln variables can be updated
