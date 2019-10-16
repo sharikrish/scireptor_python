@@ -22,7 +22,7 @@ config=(ConfigObj(expanduser('~/.my.cnf')))
 
 # logging.basicConfig(filename='example.log',level=logging.DEBUG)#
 
-
+locals()
 def connect():
     return MySQLdb.connect(host = config['mysql_igdb']['host'],
                            user = config['mysql_igdb']['user'],

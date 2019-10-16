@@ -133,12 +133,12 @@ for line in in_igblast:
                 for id in VDJ:
                     VDJ_id = id[0]
                     VDJ_locus=id[1]
-                    print(VDJ_locus)
                     cursor.execute(ins_VDJ_sth, (query_id,VDJ_type,VDJ_locus,count_D,VDJ_name,evalue,score, VDJ_id))
 
             elif "J" in VDJ_type and count_J <= 1:
                 count_J += 1
                 cursor.execute(sel_libr_sth % (VDJ_name))
+                VDJ = cursor.fetchall()
                 for id in VDJ:
                     VDJ_id = id[0]
                     VDJ_locus = id[1]
@@ -146,5 +146,5 @@ for line in in_igblast:
 
             elif VDJ_type not in ["V","D","J"]:
                 print(
-            "[todb_VDJ.py][WARNING] Encountered unknown segment type '{VDJ_type}' \
-             in line: '{}'of input file. \n".format(count_total))
+            "[todb_VDJ.py][WARNING] Encountered unknown segment type '{}' \
+             in line: '{}'of input file. \n".format(count_total, VDJ_type))

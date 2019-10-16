@@ -2,7 +2,7 @@ import configparser
 import MySQLdb.cursors
 
 config = configparser.ConfigParser()
-config.read('/home/harikris-local/.my.cnf')
+config.read('/home/arcilaf-local/.my.cnf')
 
 def connect():
     return MySQLdb.connect(host = config['mysql_igdb']['host'],

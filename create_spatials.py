@@ -26,9 +26,9 @@ import matplotlib.pyplot as plt
 import matplotlib.colorbar as cbar
 import MySQLdb as mysql
 from datetime import datetime as dt
-
 import bcelldb_init as bcelldb
-
+from os.path import expanduser
+config=(expanduser('~/.my.cnf'))
 # get command line arguments
 experiment_id = sys.argv[1]
 runname = sys.argv[2]
@@ -41,7 +41,7 @@ except IndexError:
 conf = bcelldb.get_config()
 
 # connect to database via ~/.my.conf settings
-db = mysql.connect(db=conf['database'],read_default_file="~/.my.cnf", read_default_group=conf['db_group_auth'])
+db = mysql.connect(db=conf['database'],read_default_file=config, read_default_group=conf['db_group_auth'])
 cursor = db.cursor()
 
 # defining common variables

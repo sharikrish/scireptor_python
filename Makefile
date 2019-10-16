@@ -145,7 +145,7 @@ endif
 # upload metainformation
 # DONT FORGET to put the plate and metainfo to the raw_data directory
 $(dir)/metainfotodb.done: $(dir)/mutations.done
-	./todb_sampleinfo_highth.py -p $(raw_data)/*_plate.tsv -m $(raw_data)/*_metainfo.tsv -pb $(raw_data)/*_platebarcode.tsv -exp $(experiment_id)
+	./todb_sampleinfo_highth.pl -p $(raw_data)/*_plate.tsv -m $(raw_data)/*_metainfo.tsv -pb $(raw_data)/*_platebarcode.tsv -exp $(experiment_id)
 	Rscript todb_flow.R --path $(raw_data)
 	touch $@
 
@@ -175,7 +175,7 @@ $(dir)/cdrfwrtodb.done: $(sigout_files) $(sfasta_files) $(dir)/allsigout.done
 # upload sequence VDJ segments
 $(dir)/allsigout.done: $(sigout_files) $(sfasta_files)
 	cat $(sigout_files) > $@.x
-	./todb_VDJ.pl -t VDJ_segments -io $@.x -ut sequences
+	./todb_VDJ.py -t VDJ_segments -io $@.x -ut sequences
 	touch $@
 
 # upload sequence constant segments
@@ -263,7 +263,7 @@ $(dir)/todb_consensus_tags_L.done:
 $(dir)/allrigout.done: $(dir)/alltodb.done $(rigout_files)
 	cat $? > $@.x
 	mv $@.x $@
-	./todb_VDJ.pl -t reads_VDJ_segments -io $@ -ut reads
+	./todb_VDJ.py -t reads_VDJ_segments -io $@ -ut reads
 
 $(dir)/allrblout.done: $(dir)/alltodb.done $(rblout_files)
 	cat $? > $@.x
