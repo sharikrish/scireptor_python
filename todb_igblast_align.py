@@ -5,8 +5,8 @@
 # Author: Srilakshmy               #
 # Created Date: August 26th 2019   #
 ####################################
-import dbconnect
-import sys, argparse, subprocess
+
+import argparse
 import bcelldb_init as binit
 import re
 ##usage : todb_igblast_align.py [-h] -io <igblastoutput> -dir <directory_for_output>
@@ -26,7 +26,7 @@ if __name__ == "__main__":
     outdir = args.directory
 ###Prepare database for insertion of sequence
 ### Logging and database init
-    conn = dbconnect.connect()
+    conn = binit.connect()
 ##create a cursor object
     cursor = conn.cursor()
 ###prepare insert command

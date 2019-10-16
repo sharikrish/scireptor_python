@@ -5,13 +5,10 @@
 # Author: Srilakshmy               #
 # Created Date: August 29th 2019   #
 ####################################
-import dbconnect
-import sys, argparse, subprocess
+import argparse
 import bcelldb_init as binit
-from configobj import ConfigObj
 import re
 from Bio import Seq
-from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.Alphabet import generic_dna
 ##get configuartion for scireptor
@@ -27,7 +24,7 @@ if __name__ == "__main__":
 
 ###Prepare database for insertion of sequence
 ### Logging and database init
-    conn = dbconnect.connect()
+    conn = binit.connect()
 ##create a cursor object
     cursor = conn.cursor()
 

@@ -5,10 +5,9 @@
 # Author: Srilakshmy               #
 # Created Date: August 16th 2019   #
 ####################################
-import dbconnect
-import sys, argparse, subprocess
+
+import argparse
 import bcelldb_init as binit
-from configobj import ConfigObj
 import re
 seqid_orient_hash= {}
 seqid_locus_hash= {}
@@ -33,7 +32,7 @@ if __name__ == "__main__":
 
 ###Prepare database for insertion of sequence
 ### Logging and database init
-    conn = dbconnect.connect()
+    conn = binit.connect()
 ##create a cursor object
     cursor = conn.cursor()
 

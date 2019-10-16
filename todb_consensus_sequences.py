@@ -106,8 +106,7 @@ cursor.execute(sel_consensus_details, [cons_id])
 row, col, experiment_id, locus = cursor.fetchall()[0]
 cursor.execute(str(sel_all_consensi % (row, col, experiment_id, locus)))
 # log statement
-# print ("\nSelect all consensi statement: {}\n With values (%s,%s,%s,%s).\n\n" % (sel_all_consensi,
-#                                                                                 row, col, experiment_id, locus))
+
 poss_cons_id, poss_nseq = cursor.fetchall()[0]
 if not int(poss_cons_id) == int(cons_id):
     consensus_rank+=1 # todo works but compare to .pl expected behaviour
