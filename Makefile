@@ -95,7 +95,7 @@ sblout_files = $(patsubst %.sfasta,%.sblout,$(sfasta_files))
 ###define function
 
 define do_454_data
-	python3 fastaqual_to_fasta.py -f $< -q $<.qual -p $(raw_data)
+	./fastaqual_to_fasta.py -f $< -q $<.qual -p $(raw_data)
 	./todb_reads.py -fq $<.fastq -ri $<.fastq.info -m $(experiment_id)
 	touch $@
 endef
@@ -145,7 +145,7 @@ endif
 # upload metainformation
 # DONT FORGET to put the plate and metainfo to the raw_data directory
 $(dir)/metainfotodb.done: $(dir)/mutations.done
-	./todb_sampleinfo_highth.pl -p $(raw_data)/*_plate.tsv -m $(raw_data)/*_metainfo.tsv -pb $(raw_data)/*_platebarcode.tsv -exp $(experiment_id)
+	./todb_sampleinfo_highth.py -p $(raw_data)/*_plate.tsv -m $(raw_data)/*_metainfo.tsv -pb $(raw_data)/*_platebarcode.tsv -exp $(experiment_id)
 	Rscript todb_flow.R --path $(raw_data)
 	touch $@
 
@@ -161,7 +161,7 @@ mutation_matrix.txt:
 # upload igblast alignments and write aln files to the dir
 $(dir)/igblastalignments.done: $(sigout_files) 
 	cat $(sigout_files) > $@.x
-	python3 todb_igblast_align.py -io $@.x -dir $(dir)
+	./todb_igblast_align.py -io $@.x -dir $(dir)
 	touch $@
 
 # upload CDR_FWR
@@ -169,7 +169,7 @@ $(dir)/igblastalignments.done: $(sigout_files)
 # maybe a problem of mv and touch sigout before
 $(dir)/cdrfwrtodb.done: $(sigout_files) $(sfasta_files) $(dir)/allsigout.done
 	cat $(sigout_files) > $@.x
-	python3 todb_CDR_FWR.py -io $@.x
+	./todb_CDR_FWR.py -io $@.x
 	touch $@
 
 # upload sequence VDJ segments
@@ -215,7 +215,7 @@ $(dir)/allaligntodb.done: $(dir)/consensusfasta.done $(caln_files)
 %.caln: %.cfasta
 	./perform_muscle.py -f $< -aln $@.x
 	mv $@.x $@
-	./todb_consensus_sequences.pl -aln $@
+	./todb_consensus_sequences.py -aln $@
 
 # get all the consensus fasta from the database
 # only here cfasta and caln variables can be updated

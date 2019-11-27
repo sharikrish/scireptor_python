@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#! /usr/bin/python3
 
 ####################################
 # File name: todb_consensus_tags.py#
@@ -50,17 +50,22 @@ if __name__ == "__main__":
 	AND orient IS NOT NULL\
 	AND count_tags.cnt >=2;" \
         %(config_scireptor['database'],config_scireptor['database'],fixed_locus)
-    print(sel_reads1_sth)
+
     cursor.execute(sel_reads1_sth)
     result = cursor.fetchall()
     count_seqs=0
+
     for seq in result:
         seqid_orient_hash[seq[0]] = seq[1]
         seqid_locus_hash[seq[0]] = seq[2]
         seq_list.append(seq[0])
         count_seqs+=1
         # log how many sequences were found
-    print "Selected", count_seqs, "reads for processing from locus", fixed_locus,"\n"
+    print ("Selected", count_seqs, "reads for processing from locus", fixed_locus)
+    if int(config_scireptor['log_level']) >= 3:
+        print("[todb_consensus_tags.py][INFO] Locus {}: Selected {} reads for processing.".format(fixed_locus, count_seqs))
+
+
 # ### 2. Prepare database query: for a certain seq_id get the right identifying tags from the database
 # # select all the tags from the database
 # # forward tag
@@ -88,49 +93,67 @@ if __name__ == "__main__":
             config_scireptor['database'], config_scireptor['library'], seqid, config_scireptor['tag_landing_zone'])
             cursor.execute(sel_Ftags_sth)
             ftag = cursor.fetchall()
+
             cursor.execute(sel_Rtags_sth)
             rtag = cursor.fetchall()
-            if not (not rtag) or (not ftag):
-            #     pass
-            # else:
-                for i in ftag:
-                    (Fid, Ftagname) = (i[0], i[1])
-                for j in rtag:
-                    (Rid, Rtagname) = (j[0], j[1])
-                if ((re.match("(^R)",Ftagname)) and (re.match("(^C)", Rtagname))):
-                    # if forward is R and reverse is C, read orientation should be reverse
-                    if (seqid_orient_hash[seqid] == "F"):
-                        # log: tags and orientation do not match
-                        print("Read", seqid,  "has a Ftag", Ftagname, "and a Rtag", Rtagname, "but an orientation ", seqid_orient_hash[seqid], "\n")
-                    elif seqid_orient_hash[seqid] == "R":
-                        # tags and orientation fit
-                        # take only the number
-                        (rowtag, coltag) = (Ftagname[1::], Rtagname[1::])
-                    else:
-                        print ("\nread",  seqid,  "has no correct orientation\n")	# log: no assigned orientation
-                elif((re.match("(^C)",Ftagname)) and (re.match("(^R)", Rtagname))):
-                # if forw is C and rev is R, read orientation should be forward
-                    if (seqid_orient_hash[seqid] == "R"):
-                        print("\nread", seq_d, "has a Ftag", Ftagname, "and a Rtag", Rtagname, ",but an orientation",  seqid_orient_hash[seq_id],  "\n")
-                    elif seqid_orient_hash[seqid] == "F":
-                        (rowtag, coltag) = (Rtagname[1::],Ftagname[1::])
-                    else:
-                        print("\nread 'seq_id' has no correct orientation\n")
-                if (rowtag!= '' and coltag!= '') :
-                    #print(rowtag)
-                    wellid_hash = [coltag,rowtag, hash_locus_num[seqid_locus_hash[seqid]]]
-                    hash_wellid_seqid[seqid]= wellid_hash
-                    #print "read", seqid, "was matched to well_id", wellid_hash,  "\n";
+            # if  rtag and  ftag:
+            #     print (rtag)
+            # #     pass
+            # # else:
+            for i in ftag:
+                (Fid, Ftagname) = (i[0], i[1])
+            for j in rtag:
+                (Rid, Rtagname) = (j[0], j[1])
+            if ((re.match("(^R)",Ftagname)) and (re.match("(^C)", Rtagname))):
+
+
+                # if forward is R and reverse is C, read orientation should be reverse
+                if (seqid_orient_hash[seqid] == "F"):
+                    # log: tags and orientation do not match
+                    print("Read", seqid,  "has a Ftag", Ftagname, "and a Rtag", Rtagname, "but an orientation ", seqid_orient_hash[seqid], "\n")
+                elif seqid_orient_hash[seqid] == "R":
+                    # print(seqid, "R")
+                    # tags and orientation fit
+                    # take only the number
+                    (rowtag, coltag) = (Ftagname[1:], Rtagname[1:])
+                else:
+                    print ("\nread",  seqid,  "has no correct orientation\n")	# log: no assigned orientation
+            elif((re.match("(^C)",Ftagname)) and (re.match("(^R)", Rtagname))):
+            # if forw is C and rev is R, read orientation should be forward
+                if (seqid_orient_hash[seqid] == "R"):
+                    print("\nread", seq_d, "has a Ftag", Ftagname, "and a Rtag", Rtagname, ",but an orientation",  seqid_orient_hash[seqid],  "\n")
+                elif seqid_orient_hash[seqid] == "F":
+                    (rowtag, coltag) = (Rtagname[1:],Ftagname[1:])
+
+                else:
+                    print("\nread 'seq_id' has no correct orientation\n")
+
+##
+            if rowtag and coltag:
+                wellid_hash = [coltag,rowtag, hash_locus_num[seqid_locus_hash[seqid]]]
+                wellid_name = "{}{}{}".format(coltag,rowtag,hash_locus_num[seqid_locus_hash[seqid]]) ## wellid_name was missing!!
+                if wellid_name not in hash_wellid_seqid:
+                    hash_wellid_seqid[wellid_name] = [seqid]
+                else:
+                    hash_wellid_seqid[wellid_name].append(seqid)
+
     cnt_wellids_assigned = 0
     cnt_reads_updated = 0
-    separtor =""
+
     for wellid_curr in hash_wellid_seqid.keys():
         seqid_curr = hash_wellid_seqid[wellid_curr]
         cnt_wellids_assigned+=1
-        #cnt_reads_updated+= seqid_curr
-        well_id_each=separtor.join(seqid_curr)
-        statement_update_reads_wellid = "UPDATE %s.reads SET well_id = '%s' WHERE seq_id = '%s';" %(config_scireptor['database'], well_id_each, wellid_curr)
-        cursor.execute(statement_update_reads_wellid)
+        print(wellid_curr, seqid_curr)
+        cnt_reads_updated+=len(seqid_curr)
+        for seq_id in seqid_curr: #iterate over lists of read_ids (seq_ids)
+            statement_update_reads_wellid = "UPDATE %s.reads SET well_id = '%s' WHERE seq_id = '%s';" %(config_scireptor['database'], wellid_curr, seq_id)
+            cursor.execute(statement_update_reads_wellid)
+    # print ((cnt_reads_updated))
+
+
+    if int(config_scireptor['log_level']) >= 3:
+        print("[todb_consensus_tags.py][INFO] Locus {}: Assigned {} reads to {} wells.".format(fixed_locus, str(cnt_reads_updated), str(cnt_wellids_assigned)))
+
     # ### 5. Now, select all occuring well_ids without consensus_id
     sel_wellid = "SELECT cast(well_id as char) FROM %s.reads\
                     WHERE consensus_id IS NULL\
