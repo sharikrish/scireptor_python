@@ -57,7 +57,6 @@ col_num, row_num = conf["matrix"].split("_")
 n_col_per_plate = int(conf["ncols_per_plate"])
 n_row_per_plate = int(conf["nrows_per_plate"])
 
-print(n_col_per_plate)
 ### 2. Prepare DB insertion statement
 
 # prepare statements for donor
@@ -126,9 +125,10 @@ for line in barcodes:
     if count_line > 1 and len(line.strip().split("\t"))==2:
         plate_nr,plate_barcode = line.strip().split("\t")
         plate_barcode_dic[plate_nr]=plate_barcode
-
-    elif len(line.strip().split("\t"))!=2:
-        print ('no barcode provided for plate: {} '.format((line.strip().split("\t")))) #todo: this is debug
+        if plate_barcode and int(conf["log_level"]) >= 4:
+            print("[todb_sampleinfo_highth.pl][DEBUG] Read plate barcode \"{}\" for plate {} from metadata file".format(plate_barcode, plate_nr))
+        elif not plate_barcode and int(conf["log_level"]) >= 4:
+            print ('[todb_sampleinfo_highth.py][DEBUG]no barcode provided for plate: {} '.format(plate_nr)) #todo: this is debug
 
 
 #### 5. Extract sample information for each id from META
@@ -162,7 +162,8 @@ for line in meta:
 
         if id_row_col_dic[identifier]:
             wells = id_row_col_dic[identifier]
-            # print ("[todb_sampleinfo_highth.pl][DEBUG] Metainfo identifier {} has {} wells on plates. ".format(identifier, str(len(wells))))
+            if int(conf["log_level"]) >= 4:
+                print("[todb_sampleinfo_highth.py][DEBUG] Metainfo identifier {} has {} wells on plates. ".format(identifier, str(len(wells))))
 
             for well in wells:
                 row_tag, col_tag = well.split("-")
@@ -172,12 +173,10 @@ for line in meta:
                 # only if correct row and col have been found
                 if row>0 and col>0:
 
-
                     # convert row col information to well plate
                     plate = math.ceil(col/int(
                         n_col_per_plate)) + ((math.ceil(row/n_row_per_plate - 1) * (
                             int(col_num)/n_col_per_plate)))
-
 
                     # for modulo calculation origin needs to be (0,0)
                     new_row = row - 1
@@ -190,30 +189,25 @@ for line in meta:
                     count_events += 1
                     event_id = cursor.lastrowid
 
-                    print(event_id)
-
                     for locus in loci_current:
                         # todo correction rewrite # correct for tag confusion
                         corr_col_tag = col_tag
                         corr_row_tag = row_tag
-
-                        print(sel_seq_id % (corr_row_tag, corr_col_tag, locus, args.experiment_id))
                         # get the corresponding sequence id
                         cursor.execute(sel_seq_id % (corr_row_tag, corr_col_tag, locus, args.experiment_id))
                         row = cursor.fetchone()
 
                         if row is not None:
                             seq_id = row[0]
-                            #
-                            print(seq_id)
-
                             cursor.execute(update_event % (event_id, seq_id))
-
                             count_sequences += 1
 
-                            print("[todb_sampleinfo_highth.py][INFO] Donor {}, sample {}, sort {}: {} events and {} sequences ( Loci: {} )".format(donor_id,sample_id,sort_id, count_events, count_sequences, loci_current))
+            if int(conf["log_level"]) >= 3:
 
-                        else:
+                print("[todb_sampleinfo_highth.py][INFO] Donor \"{}\", sample \"{}\", sort \"{}\": {} events and {} sequences ( Loci: {} ).".format(
+                    donor_id, sample_id, sort_id, count_events, count_sequences, loci_current))
 
-                            print("todb_sampleinfo_highth.py][WARNING]: {} was not executed ".format(
-                                sel_seq_id % (corr_row_tag, corr_col_tag, locus, args.experiment_id)))
+        else:
+
+            print("todb_sampleinfo_highth.py][WARNING]: {} was not executed ".format(
+                sel_seq_id % (corr_row_tag, corr_col_tag, locus, args.experiment_id)))
