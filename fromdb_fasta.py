@@ -54,16 +54,16 @@ mod, rest = (regex.findall(outfile)[0].split("_"))
 
 # prepare statement to get sequences
 
-statement=f"SELECT input.seq_id, input.seq \
-  FROM {database_name}.{source_table} AS input \
-  LEFT JOIN {database_name}.{target_table} AS output ON output.seq_id=input.seq_id \
-  WHERE output.seq_id IS NULL"
+statement="SELECT input.seq_id, input.seq \
+  FROM {}.{} AS input \
+  LEFT JOIN {}.{} AS output ON output.seq_id=input.seq_id \
+  WHERE output.seq_id IS NULL".format(database_name, source_table, database_name, target_table)
 
 if int(mod) > 1:
     statement = statement + " and MOD(input.seq_id,{}) = {} ".format(mod,rest)
 
 # log the select statement
-print(f"\n\nselect statement: {statement}\n\n")
+print("select statement: {}".format(statement))
 
 # get sequences
 
@@ -77,5 +77,3 @@ with open (outfile, "w") as fasta:
         seq_count+=1
         # print(">{}\n{}\n\n".format(line[0],line[1]))
         fasta.write(">{}\n{}\n\n".format(line[0],line[1]))
-
-print(seq_count)
