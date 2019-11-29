@@ -131,7 +131,7 @@ for line in barcodes:
             print ('[todb_sampleinfo_highth.py][DEBUG]no barcode provided for plate: {} '.format(plate_nr))
 
 
-#### 5. Extract sample information for each id from META
+#### 5. Extract sample information for each id from METAqqq
 
 count_line = 0
 
