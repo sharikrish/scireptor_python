@@ -181,7 +181,7 @@ for line in meta:
                     # for modulo calculation origin needs to be (0,0)
                     new_row = row - 1
                     new_col = col - 1
-                    well = (new_col % n_col_per_plate) + ((new_row % n_row_per_plate)) * n_col_per_plate + 1
+                    well = (new_col % n_col_per_plate) + (new_row % n_row_per_plate) * n_col_per_plate + 1
 
                     cursor.execute(ins_event, (well, plate, row, col,sort_id,
                                                conf['plate_layout'], plate_barcode_dic['{}'.format(int(plate))]))
@@ -189,18 +189,20 @@ for line in meta:
                     count_events += 1
                     event_id = cursor.lastrowid
 
-                    for locus in loci_current:
-                        # todo correction rewrite # correct for tag confusion
-                        corr_col_tag = col_tag
-                        corr_row_tag = row_tag
-                        # get the corresponding sequence id
-                        cursor.execute(sel_seq_id % (corr_row_tag, corr_col_tag, locus, args.experiment_id))
-                        row = cursor.fetchone()
+                    for locus in loci_current: # needs to update locus-number of times
+                        for locus in loci_current:
+                            # todo correction rewrite # correct for tag confusion
+                            corr_col_tag = col_tag
+                            corr_row_tag = row_tag
+                            # get the corresponding sequence id
+                            cursor.execute(sel_seq_id % (corr_row_tag, corr_col_tag, locus, args.experiment_id))
+                            row = cursor.fetchone()
 
-                        if row is not None:
-                            seq_id = row[0]
-                            cursor.execute(update_event % (event_id, seq_id))
-                            count_sequences += 1
+                            if row is not None:
+                                print (row)
+                                seq_id = row[0]
+                                cursor.execute(update_event % (event_id, seq_id))
+                                count_sequences += 1
 
             if int(conf["log_level"]) >= 3:
 
@@ -209,5 +211,4 @@ for line in meta:
 
         else:
 
-            print("todb_sampleinfo_highth.py][WARNING]: {} was not executed ".format(
-                sel_seq_id % (corr_row_tag, corr_col_tag, locus, args.experiment_id)))
+            print("[todb_sampleinfo_highth.py][WARNING] Metadata identifier {} (Donor ID: {} Sample ID: {} Sort ID: {}) has NO assigned events in _plate.tsv.".format(identifier, donor_id, sample_id, sort_id))
