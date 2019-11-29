@@ -128,7 +128,7 @@ for line in barcodes:
         if plate_barcode and int(conf["log_level"]) >= 4:
             print("[todb_sampleinfo_highth.pl][DEBUG] Read plate barcode \"{}\" for plate {} from metadata file".format(plate_barcode, plate_nr))
         elif not plate_barcode and int(conf["log_level"]) >= 4:
-            print ('[todb_sampleinfo_highth.py][DEBUG]no barcode provided for plate: {} '.format(plate_nr)) #todo: this is debug
+            print ('[todb_sampleinfo_highth.py][DEBUG]no barcode provided for plate: {} '.format(plate_nr))
 
 
 #### 5. Extract sample information for each id from META
