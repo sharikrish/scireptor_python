@@ -1,29 +1,61 @@
 #! /usr/bin/python3
 
-####################################
-# File name: todb_consensus_tags.py#
-# Author: Srilakshmy               #
-# Created Date: August 16th 2019   #
-####################################
+"""
+@Srilakshmy - s.harikrishnan@dkfz-heidelberg.de
+@franasa - f.arcila@dkfz-heidelberg.de
+    -adapted from Katharina Imkeller-
+
+DESCRIPTION
+
+write the identifying tags to consensus stats and the corresponding to the reads table
+
+Steps:
+
+1.	Get a list of all seq_ids that will be processed. This means select all the reads without well_id.
+2.	Prepare select statement: for a seq_id get the right identifying tags from the database.
+3.	Prepare database to insert well_id.
+4.	Go through all the reads, select tags and assign well_id.
+5.	Select all well_ids that do not yet have a consensus_id assigned.
+6.	Prepare database: for a certain well_id, select the most common and 2nd most common V-J combination
+7.	Prepare database: insert into consensus_stats, select all related seq_ids and update consensus_id for these.
+8.	Go through all the well_ids. Determine V-J combinations, insert to consensus_stats and update reads table consensus_id.
+    !!! Constant segment identification is not considered, only V-gene-allele/J-gene-allele!!!
+    We decided against taking into account constant segment identification since IgG subclass identification e.g. can be ambiguous.
+    Building different consensi for different constant assignment could thus lead to artificial 2. consensus occurrence.
+
+LOGGED INFORMATION
+
+- number of reads that will be processed
+- reads where F/R tag mapping and orientation do not match
+- reads without a correct orientation
+- count of well_ids that were processed
+- count of sequence ids that resulted (it can be 2 sequences in one well, corresponding to 1. and 2. consensus)
+
+# Created: 2019
+"""
 
 import argparse
+from argparse import RawTextHelpFormatter
 import bcelldb_init as binit
 import re
+
 seqid_orient_hash= {}
 seqid_locus_hash= {}
 wellid_hash={}
 seq_list=[]
-hash_locus_num = {"H" : "1",  "K" : "2",  "L"  : "3",  "B"  :"4",  "A" : "5"}
-hash_num_locus = {'1' : "H", '2' :"K", '3' : "L", '4' : "B", '5' : "A"}
 
-##get configuartion for scireptor
+hash_locus_num = {"H": "1",  "K": "2",  "L": "3",  "B": "4",  "A": "5"}
+hash_num_locus = {'1': "H", '2': "K", '3': "L", '4': "B", '5': "A"}
+
+## get configuartion for scireptor
 
 config_scireptor=binit.get_config()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-m', '--experiment_id', required=True, help="define input file")
-    parser.add_argument('-l', '--locus', required=True, help="define output file")
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=RawTextHelpFormatter)
+    parser.add_argument('-m', '--experiment_id', required=True, help="Experiment ID")
+    parser.add_argument('-l', '--locus', required=True, help="locus [A,B,H,K,L]")
     parser.add_argument('-v', dest='verbose', action='store_true')
     args = parser.parse_args()
 
@@ -56,12 +88,17 @@ if __name__ == "__main__":
     count_seqs=0
 
     for seq in result:
-        seqid_orient_hash[seq[0]] = seq[1]
-        seqid_locus_hash[seq[0]] = seq[2]
-        seq_list.append(seq[0])
+
+        seq_id, orient, locus = seq
+        if int(config_scireptor['log_level']) >= 4:
+            print("[todb_consensus_tags.py][DEBUG] locus: {} seq_id: {} ori: {}".format(locus, seq_id, orient))
+
+        seqid_orient_hash[seq_id] = orient
+        seqid_locus_hash[seq_id] = locus
+        seq_list.append(seq_id)
         count_seqs+=1
         # log how many sequences were found
-    print ("Selected", count_seqs, "reads for processing from locus", fixed_locus)
+    print("Selected", count_seqs, "reads for processing from locus", fixed_locus)
     if int(config_scireptor['log_level']) >= 3:
         print("[todb_consensus_tags.py][INFO] Locus {}: Selected {} reads for processing.".format(fixed_locus, count_seqs))
 
@@ -72,38 +109,50 @@ if __name__ == "__main__":
 # # looking for max(percid) and min(start)
     hash_wellid_seqid= {}
     for seqid in seq_list:
-            sel_Ftags_sth = "SELECT found.tag_id, lib.name\
-                FROM %s.reads_tags as found\
-                JOIN %s.tags_library as lib\
-                ON found.tag_id = lib.tag_id\
-                WHERE seq_id ='%s' \
-                AND direction = 'F'\
-                ORDER BY percid DESC, start ASC\
-                LIMIT 1; " % (config_scireptor['database'], config_scireptor['library'], seqid)
 
-            sel_Rtags_sth = "SELECT found.tag_id, lib.name\
-                FROM %s.reads_tags as found\
-                JOIN %s.tags_library as lib\
-                ON found.tag_id = lib.tag_id\
-                WHERE seq_id ='%s' \
-                AND direction = 'R'\
-                AND start > '%s' \
-                ORDER BY percid DESC, start DESC\
-                LIMIT 1; " % (
-            config_scireptor['database'], config_scireptor['library'], seqid, config_scireptor['tag_landing_zone'])
-            cursor.execute(sel_Ftags_sth)
-            ftag = cursor.fetchall()
+        sel_Ftags_sth = "SELECT found.tag_id, lib.name\
+            FROM %s.reads_tags as found\
+            JOIN %s.tags_library as lib\
+            ON found.tag_id = lib.tag_id\
+            WHERE seq_id ='%s' \
+            AND direction = 'F'\
+            ORDER BY percid DESC, start ASC\
+            LIMIT 1; " % (config_scireptor['database'], config_scireptor['library'], seqid)
 
-            cursor.execute(sel_Rtags_sth)
-            rtag = cursor.fetchall()
-            # if  rtag and  ftag:
-            #     print (rtag)
-            # #     pass
-            # # else:
+        sel_Rtags_sth = "SELECT found.tag_id, lib.name\
+            FROM %s.reads_tags as found\
+            JOIN %s.tags_library as lib\
+            ON found.tag_id = lib.tag_id\
+            WHERE seq_id ='%s' \
+            AND direction = 'R'\
+            AND start > '%s' \
+            ORDER BY percid DESC, start DESC\
+            LIMIT 1; " % (
+        config_scireptor['database'], config_scireptor['library'], seqid, config_scireptor['tag_landing_zone'])
+        cursor.execute(sel_Ftags_sth)
+        ftag = cursor.fetchall()
+        cursor.execute(sel_Rtags_sth)
+
+        rtag = cursor.fetchall()
+
+            ### 3. Prepare database to insert well_id
+            # assign the well id to each previously selected read
+            # the well id is composed by column and row tag and a number 1-5 representing the loci H, K, L, B, A
+            # i.e. CCCRRRL -> INT(7)
+
+            # update well_id in reads
+
+
+        if rtag and ftag:
+
             for i in ftag:
                 (Fid, Ftagname) = (i[0], i[1])
             for j in rtag:
                 (Rid, Rtagname) = (j[0], j[1])
+
+            rowtag, coltag = "", ""
+
+
             if ((re.match("(^R)",Ftagname)) and (re.match("(^C)", Rtagname))):
 
 
@@ -112,30 +161,36 @@ if __name__ == "__main__":
                     # log: tags and orientation do not match
                     print("Read", seqid,  "has a Ftag", Ftagname, "and a Rtag", Rtagname, "but an orientation ", seqid_orient_hash[seqid], "\n")
                 elif seqid_orient_hash[seqid] == "R":
-                    # print(seqid, "R")
                     # tags and orientation fit
                     # take only the number
-                    (rowtag, coltag) = (Ftagname[1:], Rtagname[1:])
+                    rowtag, coltag = Ftagname[1:], Rtagname[1:]
                 else:
-                    print ("\nread",  seqid,  "has no correct orientation\n")	# log: no assigned orientation
+                    print("\nread",  seqid,  "has no correct orientation\n")	# log: no assigned orientation
             elif((re.match("(^C)",Ftagname)) and (re.match("(^R)", Rtagname))):
             # if forw is C and rev is R, read orientation should be forward
                 if (seqid_orient_hash[seqid] == "R"):
-                    print("\nread", seq_d, "has a Ftag", Ftagname, "and a Rtag", Rtagname, ",but an orientation",  seqid_orient_hash[seqid],  "\n")
+                    print("\nread", seqid, "has a Ftag", Ftagname, "and a Rtag", Rtagname, ",but an orientation",  seqid_orient_hash[seqid],  "\n")
                 elif seqid_orient_hash[seqid] == "F":
-                    (rowtag, coltag) = (Rtagname[1:],Ftagname[1:])
+                    rowtag, coltag = Rtagname[1:],Ftagname[1:]
 
                 else:
                     print("\nread 'seq_id' has no correct orientation\n")
 
-##
+
+    ##
             if rowtag and coltag:
                 wellid_hash = [coltag,rowtag, hash_locus_num[seqid_locus_hash[seqid]]]
                 wellid_name = "{}{}{}".format(coltag,rowtag,hash_locus_num[seqid_locus_hash[seqid]]) ## wellid_name was missing!!
+
                 if wellid_name not in hash_wellid_seqid:
                     hash_wellid_seqid[wellid_name] = [seqid]
                 else:
                     hash_wellid_seqid[wellid_name].append(seqid)
+            else:
+                print ("There is something wrong with the tags", Rtagname, Ftagname, rowtag, coltag)
+
+    ### 4. Go through list of seq_ids
+    ### Select tags and assign well_id
 
     cnt_wellids_assigned = 0
     cnt_reads_updated = 0
@@ -143,16 +198,26 @@ if __name__ == "__main__":
     for wellid_curr in hash_wellid_seqid.keys():
         seqid_curr = hash_wellid_seqid[wellid_curr]
         cnt_wellids_assigned+=1
-        print(wellid_curr, seqid_curr)
         cnt_reads_updated+=len(seqid_curr)
         for seq_id in seqid_curr: #iterate over lists of read_ids (seq_ids)
             statement_update_reads_wellid = "UPDATE %s.reads SET well_id = '%s' WHERE seq_id = '%s';" %(config_scireptor['database'], wellid_curr, seq_id)
-            cursor.execute(statement_update_reads_wellid)
-    # print ((cnt_reads_updated))
 
+            if int(config_scireptor['log_level']) >= 5:
+                print("[todb_consensus_tags.py][DEBUG+] SQL UPDATE statement: {}".format(statement_update_reads_wellid))
+
+            cursor.execute(statement_update_reads_wellid)
+
+            temp_reads_updated = int(cursor.rowcount)
+
+
+            # if temp_reads_updated != len(seqid_curr) & int(config_scireptor['log_level']) >= 2:
+            #     print("[todb_consensus_tags.py][WARNING] Mismatched read counts for well_id {} : selected {}, updated {}. ".format(
+            #         wellid_curr, seqid_curr, temp_reads_updated))
 
     if int(config_scireptor['log_level']) >= 3:
-        print("[todb_consensus_tags.py][INFO] Locus {}: Assigned {} reads to {} wells.".format(fixed_locus, str(cnt_reads_updated), str(cnt_wellids_assigned)))
+        print("[todb_consensus_tags.py][INFO] Locus {}: Assigned {} reads to {} wells.".format(fixed_locus, str(
+            cnt_reads_updated), str(cnt_wellids_assigned)))
+
 
     # ### 5. Now, select all occuring well_ids without consensus_id
     sel_wellid = "SELECT cast(well_id as char) FROM %s.reads\
@@ -170,8 +235,8 @@ if __name__ == "__main__":
         well_id=k[0]
     # # convert well_id back to locus, row and col
         locus = hash_num_locus[well_id[-1]]
-        rowtag = "R"+well_id[0:3]
-        coltag = "C"+well_id[3:6]
+        rowtag = "R"+well_id[3:6]
+        coltag = "C"+well_id[0:3]
         # 6. Prepare database: for a certain well_id, select the most common and 2nd most common V-J combination
         sel_VJs = "SELECT Vseg.VDJ_id, Jseg.VDJ_id, COUNT(*) as cnt \
                   FROM %s.reads \
@@ -188,10 +253,14 @@ if __name__ == "__main__":
         # get most occuring V_J combinations
         cursor.execute(sel_VJs)
         best_VJ=cursor.fetchall()
+
+
+
     # ##7. update consensus_id of sequence with right well_id, V and J segment
         for vj in best_VJ:
             vseg=vj[0]
             jseg=vj[1]
+
             # insert new consensus
             val = (fixed_locus, coltag, rowtag, vseg, jseg, experiment_id)
             ins_consensus = "INSERT IGNORE INTO {}.consensus_stats (locus, col_tag, row_tag, best_V, best_J, experiment_id) VALUES (%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE consensus_id = LAST_INSERT_ID(consensus_id);".format(config_scireptor['database'])
@@ -214,15 +283,23 @@ if __name__ == "__main__":
             sel_seqids_fetch = cursor.fetchall()
             update_nseqs = "UPDATE {}.consensus_stats SET n_seq = (n_seq+%d) WHERE consensus_id = %d;".format(config_scireptor['database'])
             cursor.execute(update_nseqs % (n_seq,consensus_id))
+
+
+    ### 8. Go through all the well_ids. Determine V-J combinations, insert to consensus_stats and update reads table consensus_id.
+
             sel_seqid =  []
+
             for seqid_row in sel_seqids_fetch:
                 sel_seqid.append(seqid_row[0])
-                cnt_reads_consensus_updated = 0
-                if not sel_seqid:
-                    pass
-                else:
+                cnt_reads_consensus_updated = int(cursor.rowcount)
+
+                if sel_seqid:
                     sql_ins_seq = "UPDATE %s.reads SET consensus_id=%s WHERE seq_id IN (%s);" % (config_scireptor['database'], consensus_id, ','.join(str(id) for id in sel_seqid))
                     cursor.execute(sql_ins_seq)
-    print("Total number of well_ids processed:", count_wellids, "\n")
-    print("Total number of assigned sequence ids:", count_seq_ids, "\n")
-    print("[todb_consensus_tags.pl][INFO] Assigned", count_seq_ids, "sequence IDs to", count_wellids, "well IDs for locus", fixed_locus,"\n")
+
+                if int(config_scireptor['log_level']) >= 4:
+                    print("[todb_consensus_tags.py][DEBUG] Locus ", fixed_locus, ": Processing well locus", locus, " column ",
+                          coltag, " row ", rowtag, " consensus ", consensus_id, ": Updated", cnt_reads_consensus_updated, " reads ")
+
+    if int(config_scireptor['log_level']) >= 3:
+        print("[todb_consensus_tags.py[INFO] Assigned", count_seq_ids, "sequence IDs to", count_wellids, "well IDs for locus", fixed_locus)
