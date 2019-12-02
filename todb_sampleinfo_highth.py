@@ -30,6 +30,7 @@ import argparse
 from argparse import RawTextHelpFormatter
 import bcelldb_init as binit
 import glob, math
+import pdb
 
 
 parser = argparse.ArgumentParser(description=__doc__,
@@ -166,12 +167,13 @@ for line in meta:
                 print("[todb_sampleinfo_highth.py][DEBUG] Metainfo identifier {} has {} wells on plates. ".format(identifier, str(len(wells))))
 
             for well in wells:
+                # print(well)
                 row_tag, col_tag = well.split("-")
                 row = int(row_tag[1:])
                 col = int(col_tag[1:])
 
                 # only if correct row and col have been found
-                if row>0 and col>0:
+                if int(row) > 0 and  int(col)>0:
 
                     # convert row col information to well plate
                     plate = math.ceil(col/int(
@@ -189,9 +191,9 @@ for line in meta:
                     count_events += 1
                     event_id = cursor.lastrowid
 
-                    for locus in loci_current: # needs to update locus-number of times
+                    for locus in loci_current:
                         for locus in loci_current:
-                            # todo correction rewrite # correct for tag confusion
+                            # todo correction rewrite # correct_tagconfusion.pl
                             corr_col_tag = col_tag
                             corr_row_tag = row_tag
                             # get the corresponding sequence id
@@ -199,7 +201,7 @@ for line in meta:
                             row = cursor.fetchone()
 
                             if row is not None:
-                                print (row)
+
                                 seq_id = row[0]
                                 cursor.execute(update_event % (event_id, seq_id))
                                 count_sequences += 1
