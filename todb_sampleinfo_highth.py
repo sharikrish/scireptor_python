@@ -191,20 +191,25 @@ for line in meta:
                     count_events += 1
                     event_id = cursor.lastrowid
 
+                    # print (event_id)
+
+
                     for locus in loci_current:
-                        for locus in loci_current:
-                            # todo correction rewrite # correct_tagconfusion.pl
-                            corr_col_tag = col_tag
-                            corr_row_tag = row_tag
-                            # get the corresponding sequence id
+                        # todo correction rewrite # correct_tagconfusion.pl
+                        corr_col_tag = col_tag
+                        corr_row_tag = row_tag
+                        # get the corresponding sequence id
+
+                        while True: # check untill
+
                             cursor.execute(sel_seq_id % (corr_row_tag, corr_col_tag, locus, args.experiment_id))
                             row = cursor.fetchone()
-
                             if row is not None:
-
                                 seq_id = row[0]
                                 cursor.execute(update_event % (event_id, seq_id))
                                 count_sequences += 1
+                            if row is None:
+                                break
 
             if int(conf["log_level"]) >= 3:
 
