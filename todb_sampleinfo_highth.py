@@ -30,7 +30,6 @@ import argparse
 from argparse import RawTextHelpFormatter
 import bcelldb_init as binit
 import glob, math
-import pdb
 
 
 parser = argparse.ArgumentParser(description=__doc__,
@@ -101,10 +100,11 @@ id_r_c_dic = {}
 count_line = 0
 
 for line in plate:
+    line = line.strip()
     count_line += 1
     if count_line > 1 or not count_line < int(row_num) + 1:
         row = count_line - 1
-        entries = line.strip().split("\t")
+        entries = line.split("\t")
         # get entries from 2nd column on (first column contains index)
         for i in range(1,len(entries)):
 
@@ -122,9 +122,10 @@ plate_barcode_dic={}
 count_line = 0
 
 for line in barcodes:
+    line=line.strip()
     count_line += 1
-    if count_line > 1 and len(line.strip().split("\t"))==2:
-        plate_nr,plate_barcode = line.strip().split("\t")
+    if count_line > 1 and len(line.split("\t"))==2:
+        plate_nr,plate_barcode = line.split("\t")
         plate_barcode_dic[plate_nr]=plate_barcode
         if plate_barcode and int(conf["log_level"]) >= 4:
             print("[todb_sampleinfo_highth.pl][DEBUG] Read plate barcode \"{}\" for plate {} from metadata file".format(plate_barcode, plate_nr))
@@ -137,13 +138,15 @@ for line in barcodes:
 count_line = 0
 
 for line in meta:
+
+    line = line.strip()
     count_line += 1
 
-    if count_line > 2 and len (line.strip()) >= 10:
+    if count_line > 2 and len (line) >= 10:
 
         (identifier, antigen,
         population, sorting_date, add_sort_info, tissue, sampling_date, add_sample_info,
-        donor_identifier, background_treatment, project, strain, add_donor_info) = line.strip().split("\t")
+        donor_identifier, background_treatment, project, strain, add_donor_info) = line.split("\t")
         
         # insert donor
         cursor.execute(ins_donor, (donor_identifier, background_treatment, project, strain, add_donor_info, conf["species"]))
@@ -167,7 +170,6 @@ for line in meta:
                 print("[todb_sampleinfo_highth.py][DEBUG] Metainfo identifier {} has {} wells on plates. ".format(identifier, str(len(wells))))
 
             for well in wells:
-                # print(well)
                 row_tag, col_tag = well.split("-")
                 row = int(row_tag[1:])
                 col = int(col_tag[1:])
@@ -194,22 +196,21 @@ for line in meta:
                     # print (event_id)
 
 
+
                     for locus in loci_current:
-                        # todo correction rewrite # correct_tagconfusion.pl
-                        corr_col_tag = col_tag
-                        corr_row_tag = row_tag
-                        # get the corresponding sequence id
-
-                        while True: # check untill
-
+                        for repeat in range(3): # added to fetch doublets of H/K/L doublets
+                            # todo correction rewrite # correct_tagconfusion.pl
+                            corr_col_tag = col_tag
+                            corr_row_tag = row_tag
+                            # get the corresponding sequence id
                             cursor.execute(sel_seq_id % (corr_row_tag, corr_col_tag, locus, args.experiment_id))
                             row = cursor.fetchone()
+
                             if row is not None:
                                 seq_id = row[0]
                                 cursor.execute(update_event % (event_id, seq_id))
                                 count_sequences += 1
-                            if row is None:
-                                break
+
 
             if int(conf["log_level"]) >= 3:
 
