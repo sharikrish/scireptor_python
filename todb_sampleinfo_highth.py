@@ -193,10 +193,6 @@ for line in meta:
                     count_events += 1
                     event_id = cursor.lastrowid
 
-                    # print (event_id)
-
-
-
                     for locus in loci_current:
                         for repeat in range(3): # added to fetch doublets of H/K/L doublets
                             # todo correction rewrite # correct_tagconfusion.pl
@@ -210,7 +206,6 @@ for line in meta:
                                 seq_id = row[0]
                                 cursor.execute(update_event % (event_id, seq_id))
                                 count_sequences += 1
-
 
             if int(conf["log_level"]) >= 3:
 
