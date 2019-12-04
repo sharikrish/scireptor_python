@@ -194,16 +194,17 @@ for line in meta:
                     event_id = cursor.lastrowid
 
                     for locus in loci_current:
-                        for repeat in range(3): # added to fetch doublets of H/K/L doublets
-                            # todo correction rewrite # correct_tagconfusion.pl
-                            corr_col_tag = col_tag
-                            corr_row_tag = row_tag
-                            # get the corresponding sequence id
-                            cursor.execute(sel_seq_id % (corr_row_tag, corr_col_tag, locus, args.experiment_id))
-                            row = cursor.fetchone()
 
-                            if row is not None:
-                                seq_id = row[0]
+                        # todo correction rewrite # correct_tagconfusion.pl
+                        corr_col_tag = col_tag
+                        corr_row_tag = row_tag
+                        # get the corresponding sequence id
+                        cursor.execute(sel_seq_id % (corr_row_tag, corr_col_tag, locus, args.experiment_id))
+                        row = cursor.fetchall() # added to fetch doublets of H/K/L on single event_id's
+
+                        if row:
+                            for each_seq in row:
+                                seq_id = each_seq[0]
                                 cursor.execute(update_event % (event_id, seq_id))
                                 count_sequences += 1
 
