@@ -1,0 +1,195 @@
+# === Analysis Pipeline General Config File ===
+#
+# In general, this file contains <key>=<value> pairs that have to be compatible with bash. Therefore:
+# - <key> has to be a valid BASH variable name, i.e. contain only alphanumeric characters and underscores, 
+#   and must not begin with a number.
+# - NO white space characters directly before or after the "=" of the <key>=<value> pair
+# - Trailing semi-colons and white space characters will be removed from <value>
+# - Lines starting with "#" will be considered comments
+# - Environment variables and variables previously (!) defined in the config file will be expanded (SEE BELOW)
+#
+# However, this file is also parsed by other (non-bash) scripts, which results in the following limitations:
+# - Usage of commands other than <key>=<value> pairs and comments IS NOT SUPPORTED
+# - variable expansion requires variables to be written in "curly style" (e.g. ${HOME}). The "normal style" 
+#   (e.g. $HOME) will not be expanded by the scripts, but might or might not by other programs, leading to
+#   potentially unpredictable results.
+#
+
+# Set receptor type, either "IG" or "TCR"
+receptor_type=IG
+
+# Species from which the samples are derived from and against whose database the sequences will be BLASTed
+# against. Currently available options: human or mouse
+species=mouse
+
+# Set the general log level (0=fatal, 1=error, 2=warning, 3=info, 4=debug, 5=debug+)
+log_level=3
+
+# name of the project, will be used for repository structure and database scheme
+# example: healthy, malaria, ....
+database=test_data_mouse_B6
+
+# Database authentication works currently exclusively via MySQL's user config file ($HOME/.my.cnf), which
+# can contain multiple groups, each with different database/authentication parameters. The respective group
+# to use is set by the "db_group_auth" key below. Within the user config file, this group has to contain at
+# least the "user" and "password" parameter. In case the database is located on a remote server, additional
+# parameters like "host" and "port" might have to be included.
+#
+db_group_auth=mysql_igdb
+
+# Matrix size [<columns>_<rows>]
+#
+# valid sizes: 48_48, 72_64, 96_96 and 240_256
+matrix=48_48
+
+# tag batch [<species>_<isotypes>_<number>]
+#
+# valid batches as of 2015-07-01 (dimensions in parenthesis are only for information, DO NOT COPY THEM BELOW)
+# human Ig : Hs_G_001 (48x48), Hs_AEGM_001 (48x48) or Hs_AEGM_002 (72x64)
+# mouse Ig : Mm_AGM_001 (48x48), Mm_AGM_002 (240x256), Mm_ADGM_001 (48x48) or Mm_ADGM_002 (96x96)
+# human TCR: Hs_AB_001 (72x64)
+# mouse TCR: Mm_AB_001 (72x64)
+tag_batch=Mm_AGM_001
+
+# "Landing Zone" for distal tags
+#
+# Minimal distance of a distal tag from the start of a given read. All distal tags starting at positions [bp]
+# smaller than the value given here, will be ignored. Default is 300. The primers by A. Han (for human TCR )
+# require substantially smaller values as they are sometimes located towards the end of FWR3.
+tag_landing_zone=300
+
+# routines to use for correction of tag positions: "none" (default), "D01_plateposition", "tag_batch" (required
+# for Mm_AGM_002)
+tag_correction=none
+
+plate_layout=1
+nrows_per_plate=16
+ncols_per_plate=24
+
+# IgBLAST settings
+#
+# ATTENTION: String values are case-sensitive. "TCR" seqtype requires "imgt" domain since "kabat" only defines
+# immunoglobulin domains.
+#
+igblast_seqtype=Ig    # Sets receptor type, either "Ig" or "TCR". DO NOT USE QUOTES!
+igblast_domain=kabat  # Sets domain system to use, either "kabat" or "imgt".
+num_V=3
+num_D=3
+num_J=3
+num_align_igblast=10
+
+# BLAST settings
+#
+#mismatch_penalty=-1   # default = 3
+#e_value=10            # default = 10
+#word_size=7           # default = 11
+#gap_open_cost=        # default = 5
+#gap_extension_cost=1  # default = 2  
+out_format_blast=6 
+num_align_blast=1 
+
+# consensus settings
+n_consensus=5
+
+# Search motives to define end of the CDR3 region.
+#
+# The following regular expressions are critical, there is no warning in case they are modified.
+# They need to be compatible to Perl regexp, but the config is also used as bash source. Pipes ("|") need to
+# be escaped ("\"). ATTENTION: The CDR3 motives are assumed to be four characters long. In case you do not
+# want to use a given altCDR3 motif, replace it with a string that does not occur in nucleotide sequences,
+# such as "ZZZZ". DO NOT remove or comment out the altCDR3 motif or pass an empty string, as this will
+# lead to an unconditional match at position 0. Further note that the '.*' term at the begin of the CDR3
+# regexp is greedy and will result in matching the LAST occurrence of the motif. Removing it will cause
+# the expression to match the first occurrence.
+#
+# Default Ig J segment motifs / human + mouse / based on germline sequence
+# Ig heavy
+h_CDR3_e=".*WG.G"
+h_altCDR3_e1=".*W..G"
+h_altCDR3_e2=".*WG.."
+h_altCDR3_e3=".*.G.G"
+h_Jend="VS[SA]"
+
+# Ig kappa
+k_CDR3_e=".*FG.G"
+k_altCDR3_e1=".*F..G"
+k_altCDR3_e2=".*FG.."
+k_altCDR3_e3=".*.G.G"
+k_Jend="T[KR][LV][ED]IK"
+
+# Ig lambda
+l_CDR3_e=".*FG.G"
+l_altCDR3_e1=".*F..G"
+l_altCDR3_e2=".*FG.."
+l_altCDR3_e3=".*.G.G"
+l_Jend="[TI][VIA]L"
+
+## Default TCR J segment motifs / human ONLY / based on germline sequence
+## TCR beta human (use only one altCDR3 as additional motifs tend to produce false (elongated) matches)
+# b_CDR3_e=".*FG.G"
+# b_altCDR3_e1=".*VG.G"
+# b_altCDR3_e2="ZZZZ"
+# b_altCDR3_e3="ZZZZ"
+# b_Jend="L[LST][VI][LTV]"
+
+## TCR alpha human (uses positive lookahead into constant region due to the absense of a reliable J segment consensus)
+# a_CDR3_e=".*FG.G"
+# a_altCDR3_e1=".*F..G"
+# a_altCDR3_e2=".*FG.."
+# a_altCDR3_e3=".*.G.G"
+# a_Jend=".(?=.IQNPDP)"
+
+# Default TCR J segment motifs / mouse ONLY / based on germline sequence
+# TCR beta mouse
+b_CDR3_e=".*FG.G"
+b_altCDR3_e1=".*F..G"
+b_altCDR3_e2=".*FG.."
+b_altCDR3_e3=".*.G.G"
+b_Jend="L[ILST]V[ILTV]"
+
+# TCR alpha mouse (uses positive lookahead into constant region due to the absense of a reliable J segment consensus)
+a_CDR3_e=".*[FLW]G.G"
+a_altCDR3_e1=".*[FLW]..G"
+a_altCDR3_e2=".*[FLW]G.."
+a_altCDR3_e3=".*.G.G"
+a_Jend=".(?=.IQNPEP)"
+
+## Customized Ig J segment motifs / human ONLY / modified to work with highly mutated sequences
+# h_CDR3_e=".*WG.G"
+# h_altCDR3_e1=".*GQG"
+# h_altCDR3_e2=".*(W..G|WG..)"
+# h_altCDR3_e3=".*.G.G"
+# h_Jend="V.[VI](S.|.S)"
+
+# k_CDR3_e=".*FG.G"
+# k_altCDR3_e1=".*F..G"
+# k_altCDR3_e2=".*FG.."
+# k_altCDR3_e3=".*G.G"
+# k_Jend="T[KRNT][LV][EDQ]..R"
+
+
+# configuration of the database access
+library=python_library_mouse_grcm38
+
+# Configuration of databases used by the pipeline. Note that $IGDATA should point to the folder containing the
+# "database", "internal_data" and "optional_file" folders, NOT to the "database" folder itself. The paths
+# specified as "blastdb_segments_X" are relative to $IGDATA
+#
+IGDATA=/home/arcilaf-local/PycharmProjects/python_sciReptor_library/igdata/
+
+# default settings for IGBLAST stock installation, automatic switch between species
+#blastdb_segments_V=database/${species}_gl_V
+#blastdb_segments_D=database/${species}_gl_D
+#blastdb_segments_J=database/${species}_gl_J
+#blastdb_segments_C=database/${species}_gl_C
+#blastdb_auxiliary=optional_file/${species}_gl.aux
+
+## custom settings for mouse GRCm38 database
+blastdb_segments_V=database/mouse_grcm38_gl_V
+blastdb_segments_D=database/mouse_grcm38_gl_D
+blastdb_segments_J=database/mouse_grcm38_gl_J
+blastdb_segments_C=database/mouse_grcm38_gl_C
+blastdb_auxiliary=optional_file/mouse_grcm38_gl.aux
+
+version=v1.1-0-g6ac6c8d
+
