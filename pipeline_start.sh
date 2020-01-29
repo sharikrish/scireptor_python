@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 #
 # This script starts the central 'make' process to run the pipeline. It logs all output into a logfile
 # in the main project directory. In addition it starts the pipeline as a background process.
